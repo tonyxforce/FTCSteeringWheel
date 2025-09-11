@@ -20,6 +20,8 @@ setInterval(() => {
 
 ws.onopen = ()=>{
 	console.log("open");
+	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "camtest2" }));
+	ws.send(JSON.stringify({ "type": "START_OP_MODE" }));
 }
 
 ws.onclose = ()=>{
@@ -34,13 +36,14 @@ ws.onmessage = (e)=>{
 			status = data.status
 			break;
 		};
+		case "RECEIVE_IMAGE": {
+			var img = document.getElementById("camimg");
+			img.src = "data:image/jpeg;base64," + data.imageString;
+			break;
+			}
 		default:{
 			console.log(data);
 		};
 
 	}
 }
-
-/* document.body.addEventListener("load", ()=>{
-
-}) */

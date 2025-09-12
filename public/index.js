@@ -1,5 +1,5 @@
-class ControllerState{
-	constructor(){
+class ControllerState {
+	constructor() {
 		this.state = {
 			"type": "RECEIVE_GAMEPAD_STATE",
 			"gamepad1": {
@@ -54,8 +54,8 @@ class ControllerState{
 
 function connectWs() {
 	wsReconnectTimeout--;
-	if (ws)
-		console.log("Connecting...");
+	if (wsReconnectTimeout < 1) return;
+	console.log("Connecting...");
 	ws = new WebSocket(`ws:/${ip}:8000/`);
 	ws.onopen = onopen;
 	ws.onclose = onclose;
@@ -75,26 +75,28 @@ setInterval(() => {
 function calcWheelSpeed(wheelPos, forward) {
 	// Calculate left and right wheel speeds based on wheel postiion (-1=-90deg, 0=0deg, 1=90deg)
 	// Fully left or right should mean that the wheel stays in one position and the robot turns around it
-	// Wheels should only move forward, never backwards
+	// Wheels should only move forward, never backwards, but it should be able to run at max speed when going forwards
 	// forward is a value from 0 to 1 that indicates how fast the robot should move forward
 	// returns an object with left and right wheel speeds from 0 to 1
 	// e.g. {left: 0.5, right: 1}
-	return {
-		left: forward * (1 - wheelPos) / 2,
-		right: forward * (1 + wheelPos) / 2
-	};
+    return {
+        left: forward * (wheelPos <= 0 ? 1 : 1 - wheelPos),
+        right: forward * (wheelPos >= 0 ? 1 : 1 + wheelPos)
+    };
 };
 
+var controller = new ControllerState();
 function onopen() {
 	console.log("open");
-	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "camtest2" }));
-	ws.send(JSON.stringify({ "type": "START_OP_MODE" }));
-	var controller = new ControllerState();
-	controller.state.controller1.left_stick_x = 1;
+	/* 	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "KutEjsz" }));
+		ws.send(JSON.stringify({ "type": "START_OP_MODE" })); */
+	/* 	controller.state.gamepad1.left_stick_x = 1;
+		controller.state.gamepad1.left_stick_y = 1; */
 	ws.send(JSON.stringify(controller.state));
 	setTimeout(() => {
-	controller.state.controller1.left_stick_x = 0;
-	ws.send(JSON.stringify(controller.state));
+		controller.state.gamepad1.left_stick_x = 0;
+		controller.state.gamepad1.left_stick_y = 0;
+		ws.send(JSON.stringify(controller.state));
 	}, 1000);
 }
 
@@ -103,7 +105,10 @@ function onclose() {
 	connectWs();
 }
 
+const gamepads = {};
+
 window.addEventListener("gamepadconnected", (e) => {
+	const gamepad = e.gamepad;
 	console.log(
 		"Gamepad connected at index %d: %s. %d buttons, %d axes.",
 		e.gamepad.index,
@@ -111,14 +116,19 @@ window.addEventListener("gamepadconnected", (e) => {
 		e.gamepad.buttons.length,
 		e.gamepad.axes.length,
 	);
+
+	gamepads[gamepad.index] = gamepad;
 });
 
 window.addEventListener("gamepaddisconnected", (e) => {
+	const gamepad = e.gamepad;
 	console.log(
 		"Gamepad disconnected from index %d: %s",
 		e.gamepad.index,
 		e.gamepad.id,
 	);
+
+	delete gamepads[gamepad.index];
 });
 
 function onmessage(e) {
@@ -139,3 +149,18 @@ function onmessage(e) {
 
 	}
 }
+
+
+setInterval(() => {
+	if (navigator.getGamepads()[0] == null) return;
+
+	var axes = navigator.getGamepads()[0].axes;
+	axes = axes.map(function(each_element){
+		return Number(each_element.toFixed(4));
+	});
+	var wheelsSpeed = calcWheelSpeed(axes[2], axes[1]);
+	console.log(wheelsSpeed)
+	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
+	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
+	ws.send(JSON.stringify(controller.state));
+}, 20)

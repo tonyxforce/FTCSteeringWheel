@@ -52,11 +52,17 @@ class ControllerState {
 	}
 }
 
+var ws;
+var IPs = ["192.168.43.1", "localhost"];
+var status = {}
+
+var wsReconnectTimeout = 20;
+
 function connectWs() {
 	wsReconnectTimeout--;
 	if (wsReconnectTimeout < 1) return;
 	console.log("Connecting...");
-	ws = new WebSocket(`ws:/${ip}:8000/`);
+	ws = new WebSocket(`ws:/${IPs[wsReconnectTimeout % IPs.length]}:8000/`);
 	ws.onopen = onopen;
 	ws.onclose = onclose;
 	ws.onmessage = onmessage;

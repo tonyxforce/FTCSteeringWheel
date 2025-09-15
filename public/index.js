@@ -71,18 +71,39 @@ setInterval(() => {
 	}
 }, 1000)
 
+const deceleration = 0.001; // Every 10 ms
 
-function calcWheelSpeed(wheelPos, forward) {
+var accelVal = 0; // Value of accelerator pedal (0 to 1)
+var breakVal = 0; // Value of break pedal (0 to 1)
+var direction = 0; // 0 for forward 1 for backwards
+
+var speed = 0;
+
+function map(input, input_start, input_end, output_start, output_end) {
+	return output_start + ((output_end - output_start) / (input_end - input_start)) * (input - input_start)
+}
+
+setInterval(() => {
+	speed += (accelVal/100);
+	speed -= breakVal;
+	speed -= deceleration;
+
+	if (speed < 0) speed = 0;
+	if (speed > 1) speed = 1;
+}, 10)
+
+function calcWheelSpeed(wheelPos, forward, dir) {
 	// Calculate left and right wheel speeds based on wheel postiion (-1=-90deg, 0=0deg, 1=90deg)
 	// Fully left or right should mean that the wheel stays in one position and the robot turns around it
 	// Wheels should only move forward, never backwards, but it should be able to run at max speed when going forwards
 	// forward is a value from 0 to 1 that indicates how fast the robot should move forward
 	// returns an object with left and right wheel speeds from 0 to 1
 	// e.g. {left: 0.5, right: 1}
-    return {
-        left: forward * (wheelPos <= 0 ? 1 : 1 - wheelPos),
-        right: forward * (wheelPos >= 0 ? 1 : 1 + wheelPos)
-    };
+	if (dir == 1) forward = -forward
+	return {
+		left: forward * (wheelPos <= 0 ? 1 : 1 - wheelPos),
+		right: forward * (wheelPos >= 0 ? 1 : 1 + wheelPos)
+	};
 };
 
 var controller = new ControllerState();
@@ -155,12 +176,21 @@ setInterval(() => {
 	if (navigator.getGamepads()[0] == null) return;
 
 	var axes = navigator.getGamepads()[0].axes;
-	axes = axes.map(function(each_element){
+	axes = axes.map(function (each_element) {
 		return Number(each_element.toFixed(4));
 	});
-	var wheelsSpeed = calcWheelSpeed(axes[2], axes[1]);
+
+	accelVal = gasFunc(map(axes[0], 1, -1, 0, 1));
+	breakVal = constrain(axes[1], 0, 1);
+
+	var wheelsSpeed = calcWheelSpeed(axes[0], speed, direction);
 	console.log(wheelsSpeed)
+
 	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
 	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
 	ws.send(JSON.stringify(controller.state));
 }, 20)
+
+function gasFunc(value) {
+	return value*Math.pow(Math.E, (-Math.pow(speed - 1, 2)));
+}

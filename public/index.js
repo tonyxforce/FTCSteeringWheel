@@ -52,9 +52,14 @@ class ControllerState {
 	}
 }
 
+
+
 var ws;
+var wsConnected = 0;
 var IPs = ["192.168.43.1", "localhost"];
 var status = {}
+
+var controllerMode = 0;
 
 var wsReconnectTimeout = 20;
 
@@ -81,7 +86,8 @@ const deceleration = 0.001; // Every 10 ms
 
 var accelVal = 0; // Value of accelerator pedal (0 to 1)
 var breakVal = 0; // Value of break pedal (0 to 1)
-var direction = 0; // 0 for forward 1 for backwards
+var isBackwards = 0; // 0 for forward 1 for backwards
+var wheel = 0;
 
 var speed = 0;
 
@@ -90,13 +96,30 @@ function map(input, input_start, input_end, output_start, output_end) {
 }
 
 setInterval(() => {
-	speed += (accelVal/100);
+	if(!wsConnected) return;
+
+	if(controllerMode) return;
+
+	speed += (accelVal / 100);
 	speed -= breakVal;
 	speed -= deceleration;
 
 	if (speed < 0) speed = 0;
 	if (speed > 1) speed = 1;
+
+	var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
+	console.log({wheelsSpeed, accelVal, breakVal, speed})
+
+	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
+	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
+	sendControllerPos();
 }, 10)
+
+function sendControllerPos() {
+	if (ws && wsConnected) {
+		ws.send(JSON.stringify(controller.state));
+	}
+}
 
 function calcWheelSpeed(wheelPos, forward, dir) {
 	// Calculate left and right wheel speeds based on wheel postiion (-1=-90deg, 0=0deg, 1=90deg)
@@ -114,6 +137,7 @@ function calcWheelSpeed(wheelPos, forward, dir) {
 
 var controller = new ControllerState();
 function onopen() {
+	wsConnected = true;
 	console.log("open");
 	/* 	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "KutEjsz" }));
 		ws.send(JSON.stringify({ "type": "START_OP_MODE" })); */
@@ -128,6 +152,7 @@ function onopen() {
 }
 
 function onclose() {
+	wsConnected = false;
 	console.log("closed");
 	connectWs();
 }
@@ -186,17 +211,26 @@ setInterval(() => {
 		return Number(each_element.toFixed(4));
 	});
 
-	accelVal = gasFunc(map(axes[0], 1, -1, 0, 1));
-	breakVal = constrain(axes[1], 0, 1);
+	if(controllerMode){
+		var leftX = axes[0];
+		var leftY = -axes[1];
+		
+		controller.state.gamepad1.left_stick_x = leftY+leftX; // Left wheel
+		controller.state.gamepad1.left_stick_y = leftY-leftX; // Right wheel
+		sendControllerPos();
+		//console.log("controller mode", controller.state.gamepad1.left_stick_x, controller.state.gamepad1.left_stick_y)
+		return;
+	}
 
-	var wheelsSpeed = calcWheelSpeed(axes[0], speed, direction);
-	console.log(wheelsSpeed)
-
-	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
-	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
-	ws.send(JSON.stringify(controller.state));
+	accelVal = gasFunc(map(axes[1], 1, -1, 0, 1));
+	breakVal = 1 - constrain(axes[2], 0, 1);
+	wheel = axes[0];
 }, 20)
 
 function gasFunc(value) {
-	return value*Math.pow(Math.E, (-Math.pow(speed - 1, 2)));
+	return value * Math.pow(Math.E, (-Math.pow(speed - 1, 2)));
+}
+
+function constrain(value, min, max){
+ return value < min ? min : (value > max ? max : value);
 }

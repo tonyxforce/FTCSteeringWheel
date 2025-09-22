@@ -213,8 +213,9 @@ setInterval(() => {
 
 	if(controllerMode){
 		var leftX = axes[0];
-		var leftY = -axes[1];
+		var leftY = axes[1];
 		
+		controller.state.gamepad1.right_stick_x = axes[2]
 		controller.state.gamepad1.left_stick_x = leftY+leftX; // Left wheel
 		controller.state.gamepad1.left_stick_y = leftY-leftX; // Right wheel
 		sendControllerPos();

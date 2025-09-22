@@ -7,10 +7,10 @@
   <title>FTCSteeringWheel settings page</title>
   <link href="bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
   <script src="bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="settings.js"></script>
 </head>
 
 <body>
+  <form>
   <table>
     <tbody>
       <tr>
@@ -19,13 +19,13 @@
         </td>
         <td>
           <div class="btn-group">
-            <input type="radio" class="btn-check" name="ctype" id="wheelDrive" autocomplete="off" checked />
+            <input type="radio" class="btn-check" name="ctype" id="wheelDrive" value="0" autocomplete="off" checked />
             <label class="btn btn-secondary" for="wheelDrive">Wheel</label>
 
-            <input type="radio" class="btn-check" name="ctype" id="controllerDrive" autocomplete="off" />
+            <input type="radio" class="btn-check" name="ctype" id="controllerDrive" value="1" autocomplete="off" />
             <label class="btn btn-secondary" for="controllerDrive">Controller</label>
 
-            <input type="radio" class="btn-check" name="ctype" id="controllerGyroDrive" autocomplete="off" />
+            <input type="radio" class="btn-check" name="ctype" id="controllerGyroDrive" value="2" autocomplete="off" />
             <label class="btn btn-secondary" for="controllerGyroDrive">Controller+gyro drive</label>
           </div>
         </td>
@@ -36,16 +36,18 @@
         </td>
         <td>
           <div class="btn-group">
-            <input type="radio" class="btn-check" name="dtype" id="tankDrive" autocomplete="off" checked />
-            <label class="btn btn-secondary" for="tankDrive">Tank Drive</label>
+              <input type="radio" class="btn-check" name="dtype" id="tankDrive" value="0" autocomplete="off" checked />
+              <label class="btn btn-secondary" for="tankDrive">Tank Drive</label>
 
-            <input type="radio" class="btn-check" name="dtype" id="swerveDrive" autocomplete="off" />
-            <label class="btn btn-secondary" for="swerveDrive">Swerve drive</label>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+              <input type="radio" class="btn-check" name="dtype" id="swerveDrive" value="1" autocomplete="off" />
+              <label class="btn btn-secondary" for="swerveDrive">Swerve drive</label>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
+  <script src="settings.js"></script>
 </body>
 
 </html>

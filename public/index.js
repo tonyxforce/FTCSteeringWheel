@@ -58,7 +58,7 @@ var ws;
 var mainWs;
 var wsConnected = 0;
 var mainWsConnected = 0;
-var IPs = ["192.168.43.1", "localhost"];
+var IPs = ["192.168.43.1"];
 var status = {}
 
 var wheel = 0;
@@ -74,7 +74,7 @@ const DRIVEMODE_SWERVE = 1;
 var controllerMode = 0;
 var driveMode = 0;
 
-var wsReconnectTimeout = 2;
+var wsReconnectTimeout = 20;
 
 function connectWs() {
 	wsReconnectTimeout--;
@@ -99,22 +99,41 @@ function mainOnOpen() {
 
 function mainMessage(e) {
 	const data = JSON.parse(e.data);
-	if (data.speed == undefined) return console.log("no speed");
-	if (data.wheel == undefined) return console.log("no wheel");
-	var accelVal, breakVal;
-	if (data.isBackwards != undefined) isBackwards = data.isBackwards;
-	if (data.accelVal != undefined) accelVal = data.accelVal;
-	if (data.breakVal != undefined) breakVal = data.breakVal;
 	if (data.controllerMode != undefined) controllerMode = data.controllerMode;
 	if (data.driveMode != undefined) driveMode = data.driveMode;
-	speed = data.speed;
-	wheel = data.wheel;
+	var wheelsSpeed = { left: 0, right: 0 };
+	if (controllerMode == CONTROLLERMODE_WHEEL) {
+		if (data.speed == undefined) return console.log("no speed");
+		if (data.wheel == undefined) return console.log("no wheel");
+		var accelVal, breakVal;
+		if (data.isBackwards != undefined) isBackwards = data.isBackwards;
+		if (data.accelVal != undefined) accelVal = data.accelVal;
+		if (data.breakVal != undefined) breakVal = data.breakVal;
+		speed = data.speed;
+		wheel = data.wheel;
 
-	var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
-	console.log({ wheelsSpeed, accelVal, breakVal, speed, isBackwards });
+		var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
+		controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
+		controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
+	}
+	if (driveMode == DRIVEMODE_TANK) {
+		var leftX = 0;
+		var leftY = 0;
+		var rightX = 0;
+		var rightY = 0;
+		console.log(data)
+		if (data.leftX != undefined) leftX = data.leftX;
+		if (data.leftY != undefined) leftY = data.leftY;
+		if (data.rightX != undefined) rightX = data.rightX;
+		if (data.rightY != undefined) rightY = data.rightY;
+		//console.log({leftX, leftY, rightX, rightY});
 
-	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
-	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
+		controller.state.gamepad1.left_stick_x = -leftY + leftX; // Left wheel
+		controller.state.gamepad1.left_stick_y = -leftY - leftX; // Right wheel
+		controller.state.gamepad1.right_stick_x = rightX; // Intake
+		controller.state.gamepad1.right_stick_y = rightY; // Outtake
+	}
+
 	sendControllerPos();
 }
 
@@ -132,7 +151,7 @@ function map(input, input_start, input_end, output_start, output_end) {
 }
 
 function sendControllerPos() {
-	if (ws && wsConnected) {
+	if (ws && wsConnected && ws.readyState == WebSocket.OPEN) {
 		ws.send(JSON.stringify(controller.state));
 	}
 }
@@ -155,8 +174,8 @@ var controller = new ControllerState();
 function onopen() {
 	wsConnected = true;
 	console.log("open");
-	/* 	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "KutEjsz" }));
-		ws.send(JSON.stringify({ "type": "START_OP_MODE" })); */
+	ws.send(JSON.stringify({ "type": "INIT_OP_MODE", "opModeName": "KutEjsz" }));
+	ws.send(JSON.stringify({ "type": "START_OP_MODE" }));
 	/* 	controller.state.gamepad1.left_stick_x = 1;
 		controller.state.gamepad1.left_stick_y = 1; */
 	ws.send(JSON.stringify(controller.state));
@@ -226,33 +245,22 @@ setInterval(() => {
 	axes = axes.map(function (each_element) {
 		return Number(each_element.toFixed(4));
 	});
-
 	if (driveMode == DRIVEMODE_TANK) {
 		var leftX = axes[0];
 		var leftY = axes[1];
-		
-		controller.state.gamepad1.right_stick_x = axes[2]
-		controller.state.gamepad1.left_stick_x = leftY+leftX; // Left wheel
-		controller.state.gamepad1.left_stick_y = leftY-leftX; // Right wheel
-
-		var leftY = -axes[1];
 		var rightX = axes[2];
-		var rightY = axes[3]
+		var rightY = axes[3];
 
-		controller.state.gamepad1.left_stick_x = leftY + leftX; // Left wheel
-		controller.state.gamepad1.left_stick_y = leftY - leftX; // Right wheel
-		controller.state.gamepad1.right_stick_x = rightX; // Intake
-		controller.state.gamepad1.right_stick_y = rightY; // Outtake
-
-		sendControllerPos();
-
-		mainWs.send(JSON.stringify({
-			controllerMode,
-			leftX,
-			leftY,
-			rightX,
-			rightY,
-		}))
+		//sendControllerPos();
+		if (mainWs.readyState == WebSocket.OPEN)
+			mainWs.send(JSON.stringify({
+				controllerMode,
+				leftX,
+				leftY,
+				rightX,
+				rightY,
+				axes,
+			}))
 		return;
 	}
 

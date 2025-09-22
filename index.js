@@ -17,6 +17,13 @@ const CONTROLLERMODE_CONTROLLERGYRO = 2;
 const DRIVEMODE_TANK = 0;
 const DRIVEMODE_SWERVE = 1;
 
+var axes = [];
+
+var leftX = 0;
+var leftY = 0;
+var rightX = 0;
+var rightY = 0;
+
 var controllerMode = 0;
 var driveMode = 0;
 
@@ -33,7 +40,7 @@ wss.on("connection", (ws) => {
 			console.log("Error parsing JSON", e);
 			ws.send(JSON.stringify({ error: 1, msg: e.message }));
 		}
-		console.log(data);
+		//console.log(data);
 		if (data.wheel != undefined) wheel = data.wheel;
 		if (data.isBackwards != undefined) isBackwards = data.isBackwards;
 		if (data.accelVal != undefined) accelVal = data.accelVal;
@@ -41,10 +48,15 @@ wss.on("connection", (ws) => {
 		if (data.controllerMode != undefined)
 			controllerMode = data.controllerMode;
 		if (data.driveMode != undefined) driveMode = data.driveMode;
+		if (data.axes != undefined) axes = data.axes;
+		if (data.leftX != undefined) leftX = data.leftX;
+		if (data.leftY != undefined) leftY = data.leftY;
+		if (data.rightX != undefined) rightX = data.rightX;
+		if (data.rightY != undefined) rightY = data.rightY;
 	});
 });
 
-wss.on("close", (ws) => {});
+wss.on("close", (ws) => { });
 
 setInterval(() => {
 	if (wss.clients.size < 1) return;
@@ -52,11 +64,12 @@ setInterval(() => {
 		speed += accelVal / 100;
 		speed -= breakVal;
 		speed -= deceleration;
-
+		
 		if (speed < 0) speed = 0;
 		if (speed > 1) speed = 1;
 	}
-
+	
+	console.log({leftX, leftY, rightX, rightY})
 	wss.clients.forEach((ws) => {
 		ws.send(
 			JSON.stringify({
@@ -68,6 +81,10 @@ setInterval(() => {
 				breakVal,
 				isBackwards,
 				driveMode,
+				leftX,
+				leftY,
+				rightX,
+				rightY,
 				controllerMode,
 			})
 		);

@@ -22,41 +22,57 @@ var driveMode = 0;
 
 var speed = 0;
 
-
 const wss = new WebSocketServer({ port: 3001 });
 wss.on("connection", (ws) => {
 	console.log("New connection!");
 	ws.on("message", (e) => {
-		const data = JSON.parse(e.toString());
+		var data = {};
+		try {
+			data = JSON.parse(e.toString());
+		} catch (e) {
+			console.log("Error parsing JSON", e);
+			ws.send(JSON.stringify({ error: 1, msg: e.message }));
+		}
 		console.log(data);
 		if (data.wheel != undefined) wheel = data.wheel;
 		if (data.isBackwards != undefined) isBackwards = data.isBackwards;
 		if (data.accelVal != undefined) accelVal = data.accelVal;
 		if (data.breakVal != undefined) breakVal = data.breakVal;
-		if (data.controllerMode != undefined) controllerMode = data.controllerMode
-	})
+		if (data.controllerMode != undefined)
+			controllerMode = data.controllerMode;
+		if (data.driveMode != undefined) driveMode = data.driveMode;
+	});
 });
 
-
+wss.on("close", (ws) => {});
 
 setInterval(() => {
 	if (wss.clients.size < 1) return;
+	if (controllerMode == CONTROLLERMODE_WHEEL) {
+		speed += accelVal / 100;
+		speed -= breakVal;
+		speed -= deceleration;
 
-	if (controllerMode != CONTROLLERMODE_WHEEL) return;
-
-	speed += (accelVal / 100);
-	speed -= breakVal;
-	speed -= deceleration;
-
-	if (speed < 0) speed = 0;
-	if (speed > 1) speed = 1;
+		if (speed < 0) speed = 0;
+		if (speed > 1) speed = 1;
+	}
 
 	wss.clients.forEach((ws) => {
-		ws.send(JSON.stringify({ speed, wheel, accelVal, breakVal, isBackwards }));
-	})
-}, 10)
-
-
+		ws.send(
+			JSON.stringify({
+				type: "state",
+				error: 0,
+				speed,
+				wheel,
+				accelVal,
+				breakVal,
+				isBackwards,
+				driveMode,
+				controllerMode,
+			})
+		);
+	});
+}, 10);
 
 app.use(express.static(path.join(__dirname, "public")));
 

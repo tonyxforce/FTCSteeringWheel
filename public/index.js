@@ -55,24 +55,68 @@ class ControllerState {
 
 
 var ws;
+var mainWs;
 var wsConnected = 0;
+var mainWsConnected = 0;
 var IPs = ["192.168.43.1", "localhost"];
 var status = {}
 
-var controllerMode = 0;
+var wheel = 0;
+var speed = 0;
+var isBackwards = 0;
 
-var wsReconnectTimeout = 20;
+const CONTROLLERMODE_WHEEL = 0;
+const CONTROLLERMODE_CONTROLLER = 1;
+const CONTROLLERMODE_CONTROLLERGYRO = 2;
+const DRIVEMODE_TANK = 0;
+const DRIVEMODE_SWERVE = 1;
+
+var controllerMode = 0;
+var driveMode = 0;
+
+var wsReconnectTimeout = 2;
 
 function connectWs() {
 	wsReconnectTimeout--;
 	if (wsReconnectTimeout < 1) return;
 	console.log("Connecting...");
-	ws = new WebSocket(`ws:/${IPs[wsReconnectTimeout % IPs.length]}:8000/`);
+	ws = new WebSocket(`ws://${IPs[wsReconnectTimeout % IPs.length]}:8000/`);
+	if (mainWs) mainWs.close();
+	mainWs = new WebSocket(`ws://localhost:3001/`);
+	mainWs.onclose = onclose;
+	mainWs.onopen = mainOnOpen;
+	mainWs.onmessage = mainMessage;
 	ws.onopen = onopen;
 	ws.onclose = onclose;
 	ws.onmessage = onmessage;
 }
 connectWs();
+
+function mainOnOpen() {
+	mainWsConnected = 1;
+	console.log("Connected to server");
+}
+
+function mainMessage(e) {
+	const data = JSON.parse(e.data);
+	if (data.speed == undefined) return console.log("no speed");
+	if (data.wheel == undefined) return console.log("no wheel");
+	var accelVal, breakVal;
+	if (data.isBackwards != undefined) isBackwards = data.isBackwards;
+	if (data.accelVal != undefined) accelVal = data.accelVal;
+	if (data.breakVal != undefined) breakVal = data.breakVal;
+	if (data.controllerMode != undefined) controllerMode = data.controllerMode;
+	if (data.driveMode != undefined) driveMode = data.driveMode;
+	speed = data.speed;
+	wheel = data.wheel;
+
+	var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
+	console.log({ wheelsSpeed, accelVal, breakVal, speed, isBackwards });
+
+	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
+	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
+	sendControllerPos();
+}
 
 setInterval(() => {
 	if (ws && ws.readyState === WebSocket.OPEN) {
@@ -82,38 +126,10 @@ setInterval(() => {
 	}
 }, 1000)
 
-const deceleration = 0.001; // Every 10 ms
-
-var accelVal = 0; // Value of accelerator pedal (0 to 1)
-var breakVal = 0; // Value of break pedal (0 to 1)
-var isBackwards = 0; // 0 for forward 1 for backwards
-var wheel = 0;
-
-var speed = 0;
 
 function map(input, input_start, input_end, output_start, output_end) {
 	return output_start + ((output_end - output_start) / (input_end - input_start)) * (input - input_start)
 }
-
-setInterval(() => {
-	if(!wsConnected) return;
-
-	if(controllerMode) return;
-
-	speed += (accelVal / 100);
-	speed -= breakVal;
-	speed -= deceleration;
-
-	if (speed < 0) speed = 0;
-	if (speed > 1) speed = 1;
-
-	var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
-	console.log({wheelsSpeed, accelVal, breakVal, speed})
-
-	controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
-	controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
-	sendControllerPos();
-}, 10)
 
 function sendControllerPos() {
 	if (ws && wsConnected) {
@@ -211,27 +227,56 @@ setInterval(() => {
 		return Number(each_element.toFixed(4));
 	});
 
-	if(controllerMode){
+	if (driveMode == DRIVEMODE_TANK) {
 		var leftX = axes[0];
 		var leftY = axes[1];
 		
 		controller.state.gamepad1.right_stick_x = axes[2]
 		controller.state.gamepad1.left_stick_x = leftY+leftX; // Left wheel
 		controller.state.gamepad1.left_stick_y = leftY-leftX; // Right wheel
+
+		var leftY = -axes[1];
+		var rightX = axes[2];
+		var rightY = axes[3]
+
+		controller.state.gamepad1.left_stick_x = leftY + leftX; // Left wheel
+		controller.state.gamepad1.left_stick_y = leftY - leftX; // Right wheel
+		controller.state.gamepad1.right_stick_x = rightX; // Intake
+		controller.state.gamepad1.right_stick_y = rightY; // Outtake
+
 		sendControllerPos();
-		//console.log("controller mode", controller.state.gamepad1.left_stick_x, controller.state.gamepad1.left_stick_y)
+
+		mainWs.send(JSON.stringify({
+			controllerMode,
+			leftX,
+			leftY,
+			rightX,
+			rightY,
+		}))
 		return;
 	}
 
-	accelVal = gasFunc(map(axes[1], 1, -1, 0, 1));
-	breakVal = 1 - constrain(axes[2], 0, 1);
-	wheel = axes[0];
+	if (driveMode != DRIVEMODE_SWERVE) return console.log("Bad drive mode:", driveMode);
+
+	mainWs.send(JSON.stringify({
+		controllerMode,
+		accelVal: gasFunc(map(axes[1], 1, -1, 0, 1)),
+		breakVal: 1 - constrain(axes[2], 0, 1),
+		wheel: axes[0],
+	}));
 }, 20)
 
 function gasFunc(value) {
 	return value * Math.pow(Math.E, (-Math.pow(speed - 1, 2)));
 }
 
-function constrain(value, min, max){
- return value < min ? min : (value > max ? max : value);
+function constrain(value, min, max) {
+	return value < min ? min : (value > max ? max : value);
+}
+
+function setControllerMode(newMode) {
+	controllerMode = newMode;
+	mainWs.send(JSON.stringify({
+		controllerMode
+	}));
 }

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FTCSteeringWheel settings page</title>
+    <link
+      href="bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous"
+    />
+    <script
+      src="bootstrap.bundle.min.js"
+      integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+      crossorigin="anonymous"
+    ></script>
+    <script src="settings.js"></script>
+  </head>
+  <body>
+    <div class="m-3">
+      <label for="wheelDrive" class="form-label">Controller type</label>
+      <div class="input-group">
+        <input
+          type="radio"
+          class="btn-check"
+          name="ctype"
+          id="wheelDrive"
+          autocomplete="off"
+          checked
+        />
+        <label class="btn btn-secondary" for="wheelDrive">Wheel</label>
+
+        <input
+          type="radio"
+          class="btn-check"
+          name="ctype"
+          id="controllerDrive"
+          autocomplete="off"
+        />
+        <label class="btn btn-secondary" for="controllerDrive">Controller</label>
+
+        <input
+          type="radio"
+          class="btn-check"
+          name="ctype"
+          id="controllerGyroDrive"
+          autocomplete="off"
+        />
+        <label class="btn btn-secondary" for="controllerGyroDrive">Controller+gyro drive</label>
+      </div>
+    </div>
+    <div class="m-3">
+      <label for="tankDrive" class="form-label">Drive type</label>
+      <div class="input-group">
+        <input
+          type="radio"
+          class="btn-check"
+          name="dtype"
+          id="tankDrive"
+          autocomplete="off"
+          checked
+        />
+        <label class="btn btn-secondary" for="option1">Tank Drive</label>
+
+        <input
+          type="radio"
+          class="btn-check"
+          name="dtype"
+          id="option2"
+          autocomplete="off"
+        />
+        <label class="btn btn-secondary" for="option2">Radio</label>
+
+        <input
+          type="radio"
+          class="btn-check"
+          name="dtype"
+          id="option3"
+          autocomplete="off"
+        />
+        <label class="btn btn-secondary" for="option3">Disabled</label>
+
+        <input
+          type="radio"
+          class="btn-check"
+          name="dtype"
+          id="option4"
+          autocomplete="off"
+        />
+        <label class="btn btn-secondary" for="option4">Radio</label>
+      </div>
+    </div>
+  </body>
+</html>

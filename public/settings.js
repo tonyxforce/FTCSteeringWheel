@@ -15,6 +15,9 @@ var wheel = 0;
 var breakVal = 0;
 var accelVal = 0;
 
+var leftSpeed = 0;
+var rightSpeed = 0;
+
 var ws = new WebSocket(wsPath);
 ws.onopen = onopen;
 ws.onclose = onclose;
@@ -87,6 +90,22 @@ function onmessage(e) {
 		breakVal = data.breakVal;
 		ß("#breakVal").innerText = `BreakVal: ${breakVal}`;
 	}
+	if (data.leftSpeed != undefined) {
+		leftSpeed = data.leftSpeed;
+		ß("#leftSpeed").innerText = `LeftSpeed: ${leftSpeed}`;
+	}
+	if (data.rightSpeed != undefined) {
+		rightSpeed = data.rightSpeed;
+		ß("#rightSpeed").innerText = `Rightspeed: ${rightSpeed}`;
+	}
+	if(data.accelFactor != undefined){
+		accelFactor = data.accelFactor;
+		ß("#accelIDDisp").innerText = `${accelFactor}%`;
+	}
+	if(data.accelID != undefined){
+		accelID = data.accelID;
+		document.forms[0].elements["accelID"].value = accelID;
+	}
 }
 function onerror(e) {
 	console.log("error", e);
@@ -95,6 +114,8 @@ function onerror(e) {
 var controllerMode = 0;
 var driveMode = 0;
 var gasMode = 0;
+var accelID = 0;
+var accelFactor = 0;
 
 /* controllerModeChanged();
 driveModeChanged(); */
@@ -112,6 +133,11 @@ function driveModeChanged() {
 function gasModeChanged() {
 	gasMode = document.forms[0].elements["gtype"].value * 1;
 	ws.send(JSON.stringify({ gasMode }));
+}
+
+function accelChanged() {
+	accelID = document.forms[0].elements["accelID"].value * 1;
+	ws.send(JSON.stringify({ accelID }));
 }
 
 document
@@ -133,3 +159,4 @@ document
 
 document.querySelector("#speedDrive").addEventListener("click", gasModeChanged);
 document.querySelector("#accelDrive").addEventListener("click", gasModeChanged);
+document.querySelector("#accelID").addEventListener("input", accelChanged);

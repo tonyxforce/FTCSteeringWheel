@@ -90,6 +90,11 @@ function connectWs() {
 }
 connectWs();
 
+var leftSpeed = 0;
+var rightSpeed = 0;
+var intakeSpeed = 0;
+var outtakeSpeed = 0;
+
 function mainOnOpen() {
 	mainWsConnected = 1;
 	console.log("Connected to server");
@@ -100,37 +105,16 @@ function mainMessage(e) {
 	if (data.controllerMode != undefined) controllerMode = data.controllerMode;
 	if (data.driveMode != undefined) driveMode = data.driveMode;
 	var wheelsSpeed = { left: 0, right: 0 };
-	if (controllerMode == CONTROLLERMODE_WHEEL) {
-		if (data.speed == undefined) return console.log("no speed");
-		if (data.wheel == undefined) return console.log("no wheel");
-		var accelVal, breakVal;
-		if (data.isBackwards != undefined) isBackwards = data.isBackwards;
-		if (data.accelVal != undefined) accelVal = data.accelVal;
-		if (data.breakVal != undefined) breakVal = data.breakVal;
-		speed = data.speed;
-		wheel = data.wheel;
 
-		var wheelsSpeed = calcWheelSpeed(wheel, speed, isBackwards);
-		controller.state.gamepad1.left_stick_x = wheelsSpeed.left;
-		controller.state.gamepad1.left_stick_y = wheelsSpeed.right;
-	}
-	if (driveMode == DRIVEMODE_TANK) {
-		var leftX = 0;
-		var leftY = 0;
-		var rightX = 0;
-		var rightY = 0;
-		console.log(data);
-		if (data.leftX != undefined) leftX = data.leftX;
-		if (data.leftY != undefined) leftY = data.leftY;
-		if (data.rightX != undefined) rightX = data.rightX;
-		if (data.rightY != undefined) rightY = data.rightY;
-		//console.log({leftX, leftY, rightX, rightY});
+	if (data.rightSpeed != undefined) rightSpeed = data.rightSpeed;
+	if (data.leftSpeed != undefined) leftSpeed = data.leftSpeed;
+	if (data.intakeSpeed != undefined) intakeSpeed = data.intakeSpeed;
+	if (data.outtakeSpeed != undefined) outtakeSpeed = data.outtakeSpeed;
 
-		controller.state.gamepad1.left_stick_x = -leftY + leftX; // Left wheel
-		controller.state.gamepad1.left_stick_y = -leftY - leftX; // Right wheel
-		controller.state.gamepad1.right_stick_x = rightX; // Intake
-		controller.state.gamepad1.right_stick_y = rightY; // Outtake
-	}
+	controller.state.gamepad1.left_stick_x = leftSpeed; // Left wheel
+	controller.state.gamepad1.left_stick_y = rightSpeed; // Right wheel
+	controller.state.gamepad1.right_stick_x = intakeSpeed; // Intake
+	controller.state.gamepad1.right_stick_y = outtakeSpeed; // Outtake
 
 	sendControllerPos();
 }
@@ -149,7 +133,7 @@ function map(input, input_start, input_end, output_start, output_end) {
 	return (
 		output_start +
 		((output_end - output_start) / (input_end - input_start)) *
-			(input - input_start)
+		(input - input_start)
 	);
 }
 
@@ -227,13 +211,14 @@ function onmessage(e) {
 }
 
 setInterval(() => {
-	if (navigator.getGamepads()[0] == null) return;
+	var gamepad = navigator.getGamepads().find((e) => e != undefined);
+	if (gamepad == null) return;
 
-	var axes = navigator.getGamepads()[0].axes;
+	var axes = gamepad.axes;
 	axes = axes.map(function (each_element) {
 		return Number(each_element.toFixed(4));
 	});
-
+	console.log(axes);
 	mainWs.send(
 		JSON.stringify({
 			axes,

@@ -11,6 +11,9 @@ var breakVal = 0; // Value of break pedal (0 to 1)
 var accelFactor = 1; // + for forward - for backwards
 var wheel = 0;
 
+var accelID = 0;
+var accelValues = [-1, 1, 10, 100];
+
 const CONTROLLERMODE_WHEEL = 0;
 const CONTROLLERMODE_CONTROLLER = 1;
 const CONTROLLERMODE_CONTROLLERGYRO = 2;
@@ -25,6 +28,9 @@ var leftX = 0;
 var leftY = 0;
 var rightX = 0;
 var rightY = 0;
+
+var intakeSpeed = 0;
+var outtakeSpeed = 0;
 
 var controllerMode = CONTROLLERMODE_CONTROLLER;
 var driveMode = DRIVEMODE_TANK;
@@ -50,18 +56,26 @@ wss.on("connection", (ws) => {
 		if (data.driveMode != undefined) driveMode = data.driveMode;
 		if (data.gasMode != undefined) gasMode = data.gasMode;
 		if (data.axes != undefined) axes = data.axes;
+		if (data.accelID != undefined) accelID = data.accelID;
 		if (
 			[CONTROLLERMODE_CONTROLLER, CONTROLLERMODE_CONTROLLERGYRO].includes(
 				controllerMode
 			)
 		) {
-			leftX = axes[0];
-			leftY = axes[1];
-			rightX = axes[2];
-			rightY = axes[3];
-			breakVal = rightY;
-			accelVal = leftY;
-			wheel = leftX;
+			leftX = -axes[0];
+			leftY = -axes[1];
+			rightX = -axes[2];
+			rightY = -axes[3];
+			if (gasMode == GASMODE_ACCEL) {
+				breakVal = Math.abs(rightY);
+				accelVal = Math.abs(leftY);
+			} else {
+				breakVal = rightY;
+				accelVal = leftY;
+			}
+			wheel = -leftX;
+			intakeSpeed = -rightY;
+			outtakeSpeedSpeed = -rightX;
 		} else if (controllerMode == CONTROLLERMODE_WHEEL) {
 			driveMode = DRIVEMODE_SWERVE;
 			leftX = 0;
@@ -69,38 +83,55 @@ wss.on("connection", (ws) => {
 			rightX = 0;
 			rightY = 0;
 			wheel = axes[0];
-			accelVal = gasFunc(map(axes[1], 1, -1, 0, 1));
-			breakVal = 1 - constrain(axes[2], 0, 1);
+			accelVal = Math.abs(gasFunc(map(axes[1], 1, -1, 0, 1)));
+			breakVal = Math.abs(1 - constrain(axes[2], 0, 1));
 		} else {
 			console.log("Bad controller mode:", controllerMode);
 			controllerMode == CONTROLLERMODE_CONTROLLER;
 		}
+
 		if (controllerMode == CONTROLLERMODE_CONTROLLERGYRO) {
 			driveMode = DRIVEMODE_SWERVE;
 		}
 	});
 });
 
-wss.on("close", (ws) => {});
+wss.on("close", (ws) => { });
 
 var leftSpeed = 0;
 var rightSpeed = 0;
 
 setInterval(() => {
 	if (wss.clients.size < 1) return;
-	if (gasMode == GASMODE_ACCEL) {
-		speed += (accelVal / 100) * accelFactor;
-		speed -= breakVal * accelFactor;
-		speed -= deceleration * accelFactor;
+	accelFactor = accelValues[accelID];
 
-		if (speed < 0) speed = 0;
+	if (gasMode == GASMODE_ACCEL) {
+
+		speed += (accelVal / 100) * accelFactor;
+
+		if (Math.abs(speed) > 0) {
+			if (speed > 0) {
+				speed -= breakVal * Math.abs(accelFactor);
+				speed -= deceleration * Math.abs(accelFactor);
+			}else if(speed<0){
+				speed += breakVal * Math.abs(accelFactor);
+				speed += deceleration * Math.abs(accelFactor);
+			}
+		}
+		console.log("spid", speed)
+		speed = speed*1;
+		speed = speed.toFixed(5);
+
+		if (speed < -1) speed = -1;
 		if (speed > 1) speed = 1;
 
 		var wheelsSpeed = calcWheelSpeed(wheel, speed);
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	} else {
-		speed = accelVal;
+		speed = accelVal*1;
+		leftSpeed = constrain(speed + wheel, -1, 1);
+		rightSpeed = constrain(speed - wheel, -1, 1);
 	}
 
 	wss.clients.forEach((ws) => {
@@ -118,6 +149,10 @@ setInterval(() => {
 				breakVal, // Read only, debug only
 				leftSpeed, // Read only
 				rightSpeed, // Read only
+				intakeSpeed, // Read only
+				outtakeSpeed, // Read only
+				accelFactor, // Read only, debug only
+				accelID,
 			})
 		);
 	});
@@ -148,4 +183,12 @@ function calcWheelSpeed(wheelPos, forward) {
 		left: forward * (wheelPos <= 0 ? 1 : 1 - wheelPos),
 		right: forward * (wheelPos >= 0 ? 1 : 1 + wheelPos),
 	};
+}
+
+function map(input, input_start, input_end, output_start, output_end) {
+	return (
+		output_start +
+		((output_end - output_start) / (input_end - input_start)) *
+		(input - input_start)
+	);
 }

@@ -11,43 +11,64 @@
 
 <body>
   <form>
-  <table>
-    <tbody>
-      <tr>
-        <td>
-          <label for="wheelDrive" class="form-label">Controller type</label>
-        </td>
-        <td>
-          <div class="btn-group">
-            <input type="radio" class="btn-check" name="ctype" id="wheelDrive" value="0" autocomplete="off" checked />
-            <label class="btn btn-secondary" for="wheelDrive">Wheel</label>
+    <table>
+      <tbody>
+        <tr>
+          <td>
+            <label for="wheelDrive" class="form-label float-end">Controller type</label>
+          </td>
+          <td>
+            <div class="btn-group">
+              <input type="radio" class="btn-check" name="ctype" id="wheelDrive" value="0" autocomplete="off" checked />
+              <label class="btn btn-secondary btn-lg" for="wheelDrive">Wheel</label>
 
-            <input type="radio" class="btn-check" name="ctype" id="controllerDrive" value="1" autocomplete="off" />
-            <label class="btn btn-secondary" for="controllerDrive">Controller</label>
+              <input type="radio" class="btn-check" name="ctype" id="controllerDrive" value="1" autocomplete="off" />
+              <label class="btn btn-secondary btn-lg" for="controllerDrive">Controller</label>
 
-            <input type="radio" class="btn-check" name="ctype" id="controllerGyroDrive" value="2" autocomplete="off" />
-            <label class="btn btn-secondary" for="controllerGyroDrive">Controller+gyro drive</label>
-          </div>
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <label for="tankDrive" class="form-label">Drive type</label>
-        </td>
-        <td>
-          <div class="btn-group">
+              <input type="radio" class="btn-check" name="ctype" id="controllerGyroDrive" value="2"
+                autocomplete="off" />
+              <label class="btn btn-secondary btn-lg" for="controllerGyroDrive">Controller+gyro</label>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="tankDrive" class="form-label float-end">Drive type</label>
+          </td>
+          <td>
+            <div class="btn-group">
               <input type="radio" class="btn-check" name="dtype" id="tankDrive" value="0" autocomplete="off" checked />
-              <label class="btn btn-secondary" for="tankDrive">Tank Drive</label>
+              <label class="btn btn-secondary btn-lg" for="tankDrive">Tank Drive</label>
 
               <input type="radio" class="btn-check" name="dtype" id="swerveDrive" value="1" autocomplete="off" />
-              <label class="btn btn-secondary" for="swerveDrive">Swerve drive</label>
+              <label class="btn btn-secondary btn-lg" for="swerveDrive">Swerve drive</label>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="directDrive" class="form-label float-end">Gas pedal type</label>
+          </td>
+          <td>
+            <div class="btn-group">
+              <input type="radio" class="btn-check" name="gtype" id="speedDrive" value="0" autocomplete="off" checked />
+              <label class="btn btn-secondary btn-lg" for="speedDrive">Speed</label>
+
+              <input type="radio" class="btn-check" name="gtype" id="accelDrive" value="1" autocomplete="off" />
+              <label class="btn btn-secondary btn-lg" for="accelDrive">Acceleration</label>
             </div>
           </td>
         </tr>
       </tbody>
     </table>
   </form>
-  <script src="settings.js"></script>
+  <div class="w-100 h-100">
+    <h1>Values:</h1>
+    <p id="wheel">Wheel: ?</p>
+    <p id="speed">Speed: ?</p>
+    <p id="accelVal">AccelVal: ?</p>
+    <p id="breakVal">BreakVal: ?</p>
+    <script src="settings.js"></script>
 </body>
 
 </html>

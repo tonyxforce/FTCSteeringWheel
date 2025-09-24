@@ -5,13 +5,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FTC Steering wheel controller</title>
-  <script src="index.js"></script>
   <link href="bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
   <script src="bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/highcharts-more.js"></script>
+  <style>
+    #overlay {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+  </style>
 </head>
 
 <body class="m-0 p-0 h-100 w-100 overflow-hidden d-flex flex-column justify-content-center align-middle">
   <img src="nosignal.png" alt="Camera stream" id="camimg" />
+  <div id="overlay"
+    class="position-absolute end-0 bottom-0 w-25 h-25 d-flex flex-column justify-content-center align-middle">
+    <div id="stick" class="text-center display-1" style="bottom:30%"></div>
+    <figure class="highcharts-figure">
+      <div id="container"></div>
+    </figure>
+    <script src="index.js"></script>
 </body>
 
 </html>

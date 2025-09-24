@@ -7,11 +7,20 @@
   <title>FTCSteeringWheel settings page</title>
   <link href="bootstrap.min.css" rel="stylesheet" crossorigin="anonymous" />
   <script src="bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  <style>
+    td {
+      width: 0 !important;
+    }
+
+    .btn-group {
+      width: 100% !important;
+    }
+  </style>
 </head>
 
 <body>
   <form>
-    <table>
+    <table class="w-100">
       <tbody>
         <tr>
           <td>
@@ -70,6 +79,27 @@
             </div>
           </td>
         </tr>
+        <tr>
+          <td>
+            <label for="accelVal" class="form-label float-end">Accelerator value</label>
+          </td>
+          <td>
+            <div class="btn-group">
+              <input type="range" class="form-range" name="accelVal" id="accelVal" value="0" min="0" step="0.001"
+                max="1" />
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label for="deceleration" class="form-label float-end">Deceleration</label>
+          </td>
+          <td>
+            <div class="btn-group">
+              <input type="range" class="form-range" name="deceleration" id="deceleration" value="0" min="0.001"
+                step="0.0001" max="1" />
+            </div>
+        </tr>
       </tbody>
     </table>
   </form>
@@ -77,10 +107,11 @@
     <h1>Values:</h1>
     <p id="wheel">Wheel: ?</p>
     <p id="speed">Speed: ?</p>
-    <p id="accelVal">AccelVal: ?</p>
+    <p id="AccelVal">AccelVal: ?</p>
     <p id="breakVal">BreakVal: ?</p>
     <p id="leftSpeed">LeftSpeed: ?</p>
     <p id="rightSpeed">RightSpeed: ?</p>
+    <p id="Deceleration">Deceleration: ?</p>
     <script src="settings.js"></script>
 </body>
 

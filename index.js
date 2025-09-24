@@ -4,14 +4,14 @@ const path = require("path");
 
 const { WebSocketServer } = require("ws");
 
-const deceleration = 0.001; // Every 10 ms
+var deceleration = 0.001; // Every 10 ms
 
 var accelVal = 0; // Value of accelerator pedal (0 to 1)
 var breakVal = 0; // Value of break pedal (0 to 1)
 var accelFactor = 1; // + for forward - for backwards
 var wheel = 0;
 
-var accelID = 0;
+var accelID = 1;
 var accelValues = [-1, 1, 10, 100];
 
 const CONTROLLERMODE_WHEEL = 0;
@@ -22,7 +22,7 @@ const DRIVEMODE_SWERVE = 1;
 const GASMODE_SPEED = 0;
 const GASMODE_ACCEL = 1;
 
-var axes = [];
+var axes = [0, 0, 0, 0];
 
 var leftX = 0;
 var leftY = 0;
@@ -50,12 +50,17 @@ wss.on("connection", (ws) => {
 			ws.send(JSON.stringify({ error: 1, msg: e.message }));
 		}
 		//console.log(data);
-		if (data.isBackwards != undefined) accelFactor = data.isBackwards;
 		if (data.controllerMode != undefined)
 			controllerMode = data.controllerMode;
 		if (data.driveMode != undefined) driveMode = data.driveMode;
 		if (data.gasMode != undefined) gasMode = data.gasMode;
-		if (data.axes != undefined) axes = data.axes;
+		if (data.axes != undefined) {
+			var tempAxes = data.axes;
+			tempAxes.forEach((e, i) => {
+				if (e != undefined) axes[i] = e;
+			});
+		}
+		if (data.deceleration != undefined) deceleration = data.deceleration;
 		if (data.accelID != undefined) accelID = data.accelID;
 		if (
 			[CONTROLLERMODE_CONTROLLER, CONTROLLERMODE_CONTROLLERGYRO].includes(
@@ -96,8 +101,6 @@ wss.on("connection", (ws) => {
 	});
 });
 
-wss.on("close", (ws) => { });
-
 var leftSpeed = 0;
 var rightSpeed = 0;
 
@@ -106,21 +109,24 @@ setInterval(() => {
 	accelFactor = accelValues[accelID];
 
 	if (gasMode == GASMODE_ACCEL) {
-
-		speed += (accelVal / 100) * accelFactor;
-
-		if (Math.abs(speed) > 0) {
-			if (speed > 0) {
-				speed -= breakVal * Math.abs(accelFactor);
-				speed -= deceleration * Math.abs(accelFactor);
-			}else if(speed<0){
-				speed += breakVal * Math.abs(accelFactor);
-				speed += deceleration * Math.abs(accelFactor);
-			}
+		if (accelFactor > 0) {
+			speed += (accelVal / 100) * accelFactor;
+			speed -= breakVal * accelFactor;
+			if (speed > 0) speed -= (deceleration / 100) * accelFactor;
+			if (speed > 0 && speed < (deceleration / 100) * accelFactor)
+				speed = 0;
+		} else {
+			speed -= (accelVal / 100) * -accelFactor;
+			speed += breakVal * -accelFactor;
+			if (speed < 0) speed += (deceleration / 100) * -accelFactor;
+			if (speed < 0 && speed > (deceleration / 100) * -accelFactor)
+				speed = 0;
 		}
-		console.log("spid", speed)
-		speed = speed*1;
+
 		speed = speed.toFixed(5);
+		speed = speed * 1;
+
+		if (isNaN(speed)) speed = 0;
 
 		if (speed < -1) speed = -1;
 		if (speed > 1) speed = 1;
@@ -129,7 +135,7 @@ setInterval(() => {
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	} else {
-		speed = accelVal*1;
+		speed = accelVal * 1;
 		leftSpeed = constrain(speed + wheel, -1, 1);
 		rightSpeed = constrain(speed - wheel, -1, 1);
 	}
@@ -153,6 +159,7 @@ setInterval(() => {
 				outtakeSpeed, // Read only
 				accelFactor, // Read only, debug only
 				accelID,
+				deceleration,
 			})
 		);
 	});
@@ -189,6 +196,6 @@ function map(input, input_start, input_end, output_start, output_end) {
 	return (
 		output_start +
 		((output_end - output_start) / (input_end - input_start)) *
-		(input - input_start)
+			(input - input_start)
 	);
 }

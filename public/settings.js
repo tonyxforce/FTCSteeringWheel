@@ -14,6 +14,7 @@ var speed = 0;
 var wheel = 0;
 var breakVal = 0;
 var accelVal = 0;
+var deceleration = 0;
 
 var leftSpeed = 0;
 var rightSpeed = 0;
@@ -84,7 +85,8 @@ function onmessage(e) {
 	}
 	if (data.accelVal != undefined) {
 		accelVal = data.accelVal;
-		ß("#accelVal").innerText = `AccelVal: ${accelVal}`;
+		ß("#AccelVal").innerText = `AccelVal: ${accelVal}`;
+		document.forms[0].elements["accelVal"].value = accelVal;
 	}
 	if (data.breakVal != undefined) {
 		breakVal = data.breakVal;
@@ -98,13 +100,18 @@ function onmessage(e) {
 		rightSpeed = data.rightSpeed;
 		ß("#rightSpeed").innerText = `Rightspeed: ${rightSpeed}`;
 	}
-	if(data.accelFactor != undefined){
+	if (data.accelFactor != undefined) {
 		accelFactor = data.accelFactor;
 		ß("#accelIDDisp").innerText = `${accelFactor}%`;
 	}
-	if(data.accelID != undefined){
+	if (data.accelID != undefined) {
 		accelID = data.accelID;
 		document.forms[0].elements["accelID"].value = accelID;
+	}
+	if (data.deceleration != undefined) {
+		deceleration = data.deceleration;
+		document.forms[0].elements["deceleration"].value = deceleration;
+		ß("#Deceleration").innerText = `Deceleration: ${deceleration}`;
 	}
 }
 function onerror(e) {
@@ -135,11 +142,6 @@ function gasModeChanged() {
 	ws.send(JSON.stringify({ gasMode }));
 }
 
-function accelChanged() {
-	accelID = document.forms[0].elements["accelID"].value * 1;
-	ws.send(JSON.stringify({ accelID }));
-}
-
 document
 	.querySelector("#wheelDrive")
 	.addEventListener("click", controllerModeChanged);
@@ -159,4 +161,16 @@ document
 
 document.querySelector("#speedDrive").addEventListener("click", gasModeChanged);
 document.querySelector("#accelDrive").addEventListener("click", gasModeChanged);
-document.querySelector("#accelID").addEventListener("input", accelChanged);
+document.querySelector("#accelID").addEventListener("input", () => {
+	accelID = document.forms[0].elements["accelID"].value * 1;
+	ws.send(JSON.stringify({ accelID }));
+});
+document.querySelector("#accelVal").addEventListener("input", () => {
+	accelVal = document.forms[0].elements["accelVal"].value * 1;
+	ws.send(JSON.stringify({ axes: [undefined, accelVal] }));
+});
+document.querySelector("#deceleration").addEventListener("input", () => {
+	deceleration = document.querySelector("#deceleration").value * 1;
+	ws.send(JSON.stringify({ deceleration }));
+	ß("#Deceleration").innerText = `Deceleration: ${deceleration}`;
+});

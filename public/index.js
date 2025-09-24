@@ -62,6 +62,7 @@ var status = {};
 var wheel = 0;
 var speed = 0;
 var isBackwards = 0;
+var accelID = 1;
 
 const CONTROLLERMODE_WHEEL = 0;
 const CONTROLLERMODE_CONTROLLER = 1;
@@ -214,13 +215,19 @@ setInterval(() => {
 	if (gamepad == null) return;
 
 	var axes = gamepad.axes;
+	var buttons = gamepad.buttons.map(e=>e.pressed);
 	axes = axes.map(function (each_element) {
 		return Number(each_element.toFixed(4));
 	});
-	console.log(axes);
+	if(buttons[4]){
+		accelID = 1;
+	}else if(buttons[5]){
+		accelID = 0;
+	}
 	mainWs.send(
 		JSON.stringify({
 			axes,
+			accelID,
 		})
 	);
 }, 20);

@@ -32,7 +32,7 @@ var rightY = 0;
 var intakeSpeed = 0;
 var outtakeSpeed = 0;
 
-var controllerMode = CONTROLLERMODE_CONTROLLER;
+var controllerMode = CONTROLLERMODE_WHEEL;
 var driveMode = DRIVEMODE_TANK;
 var gasMode = GASMODE_SPEED;
 
@@ -112,8 +112,8 @@ setInterval(() => {
 		if (accelFactor > 0) {
 			speed += (accelVal / 100) * accelFactor;
 			speed -= breakVal * accelFactor;
-			if (speed > 0) speed -= (deceleration / 100) * accelFactor;
-			if (speed > 0 && speed < (deceleration / 100) * accelFactor)
+			if (speed > 0) speed -= (deceleration) * accelFactor;
+			if (speed > 0 && speed < (deceleration) * accelFactor)
 				speed = 0;
 		} else {
 			speed -= (accelVal / 100) * -accelFactor;
@@ -135,7 +135,9 @@ setInterval(() => {
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	} else {
-		speed = accelVal * 1;
+		speed = accelVal * 1 * accelFactor;
+		wheel = wheel * accelFactor;
+		if(speed == 0) wheel = 0;
 		leftSpeed = constrain(speed + wheel, -1, 1);
 		rightSpeed = constrain(speed - wheel, -1, 1);
 	}
@@ -172,6 +174,7 @@ app.listen(3000, () => {
 });
 
 function gasFunc(value) {
+	return value;
 	return value * Math.pow(Math.E, -Math.pow(speed - 1, 2));
 }
 

@@ -127,6 +127,7 @@ function mainMessage(e) {
 	if (data.leftSpeed != undefined) leftSpeed = data.leftSpeed;
 	if (data.intakeSpeed != undefined) intakeSpeed = data.intakeSpeed;
 	if (data.outtakeSpeed != undefined) outtakeSpeed = data.outtakeSpeed;
+	if (data.speed != undefined) speed = data.speed;
 
 	controller.state.gamepad1.left_stick_x = leftSpeed; // Left wheel
 	controller.state.gamepad1.left_stick_y = rightSpeed; // Right wheel
@@ -151,7 +152,7 @@ function map(input, input_start, input_end, output_start, output_end) {
 	return (
 		output_start +
 		((output_end - output_start) / (input_end - input_start)) *
-			(input - input_start)
+		(input - input_start)
 	);
 }
 
@@ -159,12 +160,13 @@ function sendControllerPos() {
 	if (ws && wsConnected && ws.readyState == WebSocket.OPEN) {
 		ws.send(JSON.stringify(controller.state));
 	}
-	const chart = Highcharts.charts[0];
-	if (chart && !chart.renderer.forExport) {
-		const point = chart.series[0].points[0];
-		point.update(speed);
-	}
 }
+
+setInterval(() => {
+	const chart = Highcharts.charts[0];
+	const point = chart.series[0].points[0];
+	point.update(Number((leftSpeed + rightSpeed) / 2));
+}, 100);
 
 var controller = new ControllerState();
 function onopen() {
@@ -238,12 +240,13 @@ setInterval(() => {
 	} else if (buttons[5]) {
 		accelID = 0;
 	}
-	mainWs.send(
-		JSON.stringify({
-			axes,
-			accelID,
-		})
-	);
+	if (mainWs.readyState == WebSocket.OPEN)
+		mainWs.send(
+			JSON.stringify({
+				axes,
+				accelID,
+			})
+		);
 }, 20);
 
 function setControllerMode(newMode) {

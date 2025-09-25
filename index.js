@@ -34,7 +34,7 @@ var outtakeSpeed = 0;
 
 var controllerMode = CONTROLLERMODE_WHEEL;
 var driveMode = DRIVEMODE_TANK;
-var gasMode = GASMODE_SPEED;
+var gasMode = GASMODE_ACCEL;
 
 var speed = 0;
 
@@ -104,24 +104,34 @@ wss.on("connection", (ws) => {
 var leftSpeed = 0;
 var rightSpeed = 0;
 
+const breakStrength = 20;
+const accelStrength = 5;
+
 setInterval(() => {
 	if (wss.clients.size < 1) return;
 	accelFactor = accelValues[accelID];
 
 	if (gasMode == GASMODE_ACCEL) {
 		if (accelFactor > 0) {
-			speed += (accelVal / 100) * accelFactor;
-			speed -= breakVal * accelFactor;
-			if (speed > 0) speed -= (deceleration) * accelFactor;
-			if (speed > 0 && speed < (deceleration) * accelFactor)
-				speed = 0;
+			speed += ((accelVal * accelStrength) / 100) * (accelFactor / accelStrength);
+			if (speed >= 0) {
+				speed -= ((breakVal * breakStrength) / 100) * (accelFactor / accelStrength);
+				if(speed < 0) speed = 0;
+			}
 		} else {
-			speed -= (accelVal / 100) * -accelFactor;
-			speed += breakVal * -accelFactor;
-			if (speed < 0) speed += (deceleration / 100) * -accelFactor;
-			if (speed < 0 && speed > (deceleration / 100) * -accelFactor)
-				speed = 0;
+			speed += ((accelVal * accelStrength) / 100) * (accelFactor / accelStrength);
+			if (speed <= 0) {
+				speed -= ((breakVal * breakStrength) / 100) * (accelFactor / breakStrength);
+				if(speed > 0) speed = 0;
+			}
 		}
+
+		if (speed < 0) speed += (deceleration / 100) * accelFactor;
+		if (speed < 0 && speed > (deceleration / 100) * accelFactor)
+			speed = 0;
+		if (speed > 0) speed -= (deceleration / 100) * accelFactor;
+		if (speed > 0 && speed < (deceleration / 100) * accelFactor)
+			speed = 0;
 
 		speed = speed.toFixed(5);
 		speed = speed * 1;
@@ -135,11 +145,12 @@ setInterval(() => {
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	} else {
-		speed = accelVal * 1 * accelFactor;
-		wheel = wheel * accelFactor;
-		if(speed == 0) wheel = 0;
-		leftSpeed = constrain(speed + wheel, -1, 1);
-		rightSpeed = constrain(speed - wheel, -1, 1);
+		speed = (accelVal * accelFactor) + ((0.1 - (breakVal / 10))) * accelFactor;
+		var _wheel = wheel * accelFactor;
+		if (Math.abs(speed) <= 0.2) _wheel = 0;
+		var wheelsSpeed = calcWheelSpeed(wheel, speed);
+		leftSpeed = wheelsSpeed.left;
+		rightSpeed = wheelsSpeed.right;
 	}
 
 	wss.clients.forEach((ws) => {
@@ -199,6 +210,6 @@ function map(input, input_start, input_end, output_start, output_end) {
 	return (
 		output_start +
 		((output_end - output_start) / (input_end - input_start)) *
-			(input - input_start)
+		(input - input_start)
 	);
 }

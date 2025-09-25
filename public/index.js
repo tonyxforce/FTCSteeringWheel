@@ -52,6 +52,8 @@ class ControllerState {
 	}
 }
 
+const url = new URL(document.URL);
+
 var ws;
 var mainWs;
 var wsConnected = 0;
@@ -74,22 +76,30 @@ var controllerMode = 0;
 var driveMode = 0;
 
 var wsReconnectTimeout = 20;
+var mainWsReconnectTimeout = 20;
 
 function connectWs() {
 	wsReconnectTimeout--;
 	if (wsReconnectTimeout < 1) return;
-	console.log("Connecting...");
+	//console.log("Connecting to robot...");
 	ws = new WebSocket(`ws://${IPs[wsReconnectTimeout % IPs.length]}:8000/`);
-	if (mainWs) mainWs.close();
-	mainWs = new WebSocket(`ws://localhost:3001/`);
-	mainWs.onclose = onclose;
-	mainWs.onopen = mainOnOpen;
-	mainWs.onmessage = mainMessage;
 	ws.onopen = onopen;
 	ws.onclose = onclose;
 	ws.onmessage = onmessage;
 }
+
 connectWs();
+
+function connectMainWs() {
+	mainWsReconnectTimeout--;
+	if (mainWsReconnectTimeout < 1) return;
+	mainWs = new WebSocket(`ws://${url.host.split(":")[0]}:3001/`);
+	mainWs.onclose = mainOnclose;
+	mainWs.onopen = mainOnOpen;
+	mainWs.onmessage = mainMessage;
+}
+
+connectMainWs();
 
 var leftSpeed = 0;
 var rightSpeed = 0;
@@ -99,6 +109,12 @@ var outtakeSpeed = 0;
 function mainOnOpen() {
 	mainWsConnected = 1;
 	console.log("Connected to server");
+}
+
+function mainOnclose() {
+	console.log("Disconnected from server");
+	mainWsConnected = 0;
+	connectMainWs();
 }
 
 function mainMessage(e) {
@@ -128,6 +144,7 @@ setInterval(() => {
 			})
 		);
 	}
+	sendControllerPos();
 }, 1000);
 
 function map(input, input_start, input_end, output_start, output_end) {
@@ -142,27 +159,24 @@ function sendControllerPos() {
 	if (ws && wsConnected && ws.readyState == WebSocket.OPEN) {
 		ws.send(JSON.stringify(controller.state));
 	}
+	const chart = Highcharts.charts[0];
+	if (chart && !chart.renderer.forExport) {
+		const point = chart.series[0].points[0];
+		point.update(speed);
+	}
 }
 
 var controller = new ControllerState();
 function onopen() {
 	wsConnected = true;
-	console.log("open");
+	console.log("Connected to robot!");
 	ws.send(JSON.stringify({ type: "INIT_OP_MODE", opModeName: "KutEjsz" }));
 	ws.send(JSON.stringify({ type: "START_OP_MODE" }));
-	/* 	controller.state.gamepad1.left_stick_x = 1;
-		controller.state.gamepad1.left_stick_y = 1; */
-	ws.send(JSON.stringify(controller.state));
-	setTimeout(() => {
-		controller.state.gamepad1.left_stick_x = 0;
-		controller.state.gamepad1.left_stick_y = 0;
-		ws.send(JSON.stringify(controller.state));
-	}, 1000);
 }
 
 function onclose() {
 	wsConnected = false;
-	console.log("closed");
+	//console.log("Disconnected from robot!");
 	connectWs();
 }
 
@@ -215,13 +229,13 @@ setInterval(() => {
 	if (gamepad == null) return;
 
 	var axes = gamepad.axes;
-	var buttons = gamepad.buttons.map(e=>e.pressed);
+	var buttons = gamepad.buttons.map((e) => e.pressed);
 	axes = axes.map(function (each_element) {
 		return Number(each_element.toFixed(4));
 	});
-	if(buttons[4]){
+	if (buttons[4]) {
 		accelID = 1;
-	}else if(buttons[5]){
+	} else if (buttons[5]) {
 		accelID = 0;
 	}
 	mainWs.send(
@@ -242,6 +256,10 @@ function setControllerMode(newMode) {
 }
 
 Highcharts.chart("container", {
+	title: {
+		text: "Speed",
+	},
+
 	chart: {
 		type: "gauge",
 		plotBackgroundColor: null,
@@ -254,15 +272,15 @@ Highcharts.chart("container", {
 	pane: {
 		startAngle: -90,
 		endAngle: 89.9,
-		background: null,
+		background: "#3CFF00FF",
 		center: ["50%", "75%"],
 		size: "100%",
 	},
 
 	// the value axis
 	yAxis: {
-		min: 0,
-		max: 200,
+		min: -1,
+		max: 1,
 		tickPixelInterval: 72,
 		tickPosition: "inside",
 		tickLength: 20,
@@ -278,21 +296,14 @@ Highcharts.chart("container", {
 		plotBands: [
 			{
 				from: 0,
-				to: 120,
+				to: 1,
 				color: "#55BF3B", // green
 				thickness: 20,
 				borderRadius: "50%",
 			},
 			{
-				from: 120,
-				to: 160,
-				color: "#DDDF0D", // yellow
-				thickness: 20,
-				borderRadius: "50%",
-			},
-			{
-				from: 160,
-				to: 200,
+				from: -1,
+				to: 0,
 				color: "#DF5353", // red
 				thickness: 20,
 				borderRadius: "50%",
@@ -303,18 +314,18 @@ Highcharts.chart("container", {
 	series: [
 		{
 			name: "Speed",
-			data: [80],
+			data: [0],
 			tooltip: {
-				valueSuffix: " km/h",
+				valueSuffix: "",
 			},
 			dataLabels: {
-				format: "{y} km/h",
+				format: "{y}",
 				borderWidth: 0,
 				color:
 					(Highcharts.defaultOptions.title &&
 						Highcharts.defaultOptions.title.style &&
 						Highcharts.defaultOptions.title.style.color) ||
-					"#333333",
+					"#FF0000FF",
 				style: {
 					fontSize: "16px",
 				},
@@ -333,19 +344,3 @@ Highcharts.chart("container", {
 		},
 	],
 });
-
-// Add some life
-setInterval(() => {
-	const chart = Highcharts.charts[0];
-	if (chart && !chart.renderer.forExport) {
-		const point = chart.series[0].points[0],
-			inc = Math.round((Math.random() - 0.5) * 20);
-
-		let newVal = point.y + inc;
-		if (newVal < 0 || newVal > 200) {
-			newVal = point.y - inc;
-		}
-
-		point.update(newVal);
-	}
-}, 3000);

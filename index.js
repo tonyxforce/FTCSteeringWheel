@@ -126,12 +126,12 @@ setInterval(() => {
 			}
 		}
 
-		if (speed < 0) speed += (deceleration / 100) * accelFactor;
-		if (speed < 0 && speed > (deceleration / 100) * accelFactor)
-			speed = 0;
-		if (speed > 0) speed -= (deceleration / 100) * accelFactor;
-		if (speed > 0 && speed < (deceleration / 100) * accelFactor)
-			speed = 0;
+		//Let there be a point where the speed stays constant when the accelerator is at the right position
+		// Make sure to not cross over 0 when decelerating
+		if (accelVal < deceleration) {
+			if (speed < 0) speed += deceleration;
+			if (speed > 0) speed -= deceleration;
+		}
 
 		speed = speed.toFixed(5);
 		speed = speed * 1;
@@ -210,6 +210,6 @@ function map(input, input_start, input_end, output_start, output_end) {
 	return (
 		output_start +
 		((output_end - output_start) / (input_end - input_start)) *
-		(input - input_start)
+			(input - input_start)
 	);
 }

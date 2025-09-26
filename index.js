@@ -104,7 +104,7 @@ wss.on("connection", (ws) => {
 var leftSpeed = 0;
 var rightSpeed = 0;
 
-const breakStrength = 20;
+const breakStrength = 30;
 const accelStrength = 5;
 
 setInterval(() => {
@@ -141,14 +141,14 @@ setInterval(() => {
 		if (speed < -1) speed = -1;
 		if (speed > 1) speed = 1;
 
-		var wheelsSpeed = calcWheelSpeed(wheel, speed);
+		var wheelsSpeed = calcWheelSpeed(-wheel, speed);
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	} else {
 		speed = (accelVal * accelFactor) + ((0.1 - (breakVal / 10))) * accelFactor;
 		var _wheel = wheel * accelFactor;
 		if (Math.abs(speed) <= 0.2) _wheel = 0;
-		var wheelsSpeed = calcWheelSpeed(wheel, speed);
+		var wheelsSpeed = calcWheelSpeed(-wheel, speed);
 		leftSpeed = wheelsSpeed.left;
 		rightSpeed = wheelsSpeed.right;
 	}

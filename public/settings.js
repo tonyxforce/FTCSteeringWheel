@@ -27,7 +27,7 @@ ws.onerror = onerror;
 
 function reconnect() {
 	wsTriesLeft--;
-	var ws = new WebSocket(wsPath);
+	ws = new WebSocket(wsPath);
 	ws.onopen = onopen;
 	ws.onclose = onclose;
 	ws.onmessage = onmessage;
@@ -36,11 +36,21 @@ function reconnect() {
 
 function onopen() {
 	console.log("open!");
+	[].forEach.call(document.querySelectorAll("input"), (e) => {
+		e.disabled = false;
+	});
 }
 function onclose() {
 	console.log("close!");
 	if (wsTriesLeft > 0) reconnect();
+	[].forEach.call(document.querySelectorAll("input"), (e) => {
+		e.disabled = true;
+	});
 }
+
+[].forEach.call(document.querySelectorAll("input"), (e) => {
+	e.disabled = true;
+});
 
 function ß(select) {
 	return document.querySelector(select);
@@ -172,5 +182,4 @@ document.querySelector("#accelVal").addEventListener("input", () => {
 document.querySelector("#deceleration").addEventListener("input", () => {
 	deceleration = document.querySelector("#deceleration").value * 1;
 	ws.send(JSON.stringify({ deceleration }));
-	ß("#Deceleration").innerText = `Deceleration: ${deceleration}`;
 });
